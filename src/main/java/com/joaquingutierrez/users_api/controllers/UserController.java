@@ -1,10 +1,12 @@
 package com.joaquingutierrez.users_api.controllers;
 
+import com.joaquingutierrez.users_api.dtos.ChangePasswordRequest;
 import com.joaquingutierrez.users_api.dtos.CreateUserRequest;
 import com.joaquingutierrez.users_api.dtos.UpdateUserRequest;
 import com.joaquingutierrez.users_api.dtos.UserResponse;
 import com.joaquingutierrez.users_api.services.UserService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -44,8 +46,15 @@ public class UserController {
         return userService.update(id, req);
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     public void deleteUser(@PathVariable Long id) {
         userService.delete(id);
+    }
+
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PatchMapping("/{id}/change-password")
+    public void changePassword(@PathVariable Long id, @RequestBody @Valid ChangePasswordRequest req) {
+        userService.changePassword(id, req);
     }
 }

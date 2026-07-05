@@ -39,6 +39,16 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR, ErrorCode.VALIDATION_ERROR.getDefaultMessage(), fieldErr);
     }
 
+    @ExceptionHandler(IncorrectPasswordException.class)
+    public ResponseEntity<ErrorResponse> handlerIncorrectPasswordError(IncorrectPasswordException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.INCORRECT_PASSWORD, ErrorCode.INCORRECT_PASSWORD.getDefaultMessage());
+    }
+
+    @ExceptionHandler(NewPasswordMustBeDifferentException.class)
+    public ResponseEntity<ErrorResponse> handlerNewPasswordMustBeDifferentException(NewPasswordMustBeDifferentException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.NEW_PASSWORD_MUST_BE_DIFFERENT, ErrorCode.NEW_PASSWORD_MUST_BE_DIFFERENT.getDefaultMessage());
+    }
+
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, ErrorCode code, String message) {
         ErrorResponse err = new ErrorResponse(
                 LocalDateTime.now(),

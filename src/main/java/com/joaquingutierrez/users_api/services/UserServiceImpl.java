@@ -1,15 +1,19 @@
 package com.joaquingutierrez.users_api.services;
 
+import com.joaquingutierrez.users_api.dtos.ChangePasswordRequest;
 import com.joaquingutierrez.users_api.dtos.CreateUserRequest;
 import com.joaquingutierrez.users_api.dtos.UpdateUserRequest;
 import com.joaquingutierrez.users_api.dtos.UserResponse;
 import com.joaquingutierrez.users_api.entities.User;
 import com.joaquingutierrez.users_api.enums.Role;
 import com.joaquingutierrez.users_api.exceptions.EmailAlreadyExistException;
+import com.joaquingutierrez.users_api.exceptions.IncorrectPasswordException;
+import com.joaquingutierrez.users_api.exceptions.NewPasswordMustBeDifferentException;
 import com.joaquingutierrez.users_api.exceptions.UserNotFoundException;
 import com.joaquingutierrez.users_api.repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -104,5 +108,22 @@ public class UserServiceImpl implements UserService {
                 .stream()
                 .map(this::map)
                 .toList();
+    }
+
+    @Transactional
+    @Override
+    public void changePassword(Long id, ChangePasswordRequest req) {
+        User user = userRepository.findById(id)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
+            throw new IncorrectPasswordException();
+        }
+
+        if (passwordEncoder.matches(req.getNewPassword(), user.getPassword())) {
+            throw new NewPasswordMustBeDifferentException();
+        }
+
+        user.setPassword(passwordEncoder.encode(req.getNewPassword()));
     }
 }

@@ -1,8 +1,8 @@
 package com.joaquingutierrez.users_api.dtos;
 
+import com.joaquingutierrez.users_api.validation.ValidPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Size;
 
 public class CreateUserRequest {
     @NotEmpty
@@ -15,8 +15,7 @@ public class CreateUserRequest {
     @NotEmpty
     private String lastName;
 
-    @NotEmpty
-    @Size(min=8)
+    @ValidPassword
     private String password;
 
     public CreateUserRequest() {
