@@ -17,14 +17,9 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handlerUserNotFound(UserNotFoundException ex) {
-        return buildResponse(HttpStatus.NOT_FOUND, ErrorCode.USER_NOT_FOUND, ErrorCode.USER_NOT_FOUND.getDefaultMessage());
-    }
-
-    @ExceptionHandler(EmailAlreadyExistException.class)
-    public ResponseEntity<ErrorResponse> handlerEmailAlreadyExist(EmailAlreadyExistException ex) {
-        return buildResponse(HttpStatus.CONFLICT, ErrorCode.EMAIL_ALREADY_EXISTS, ErrorCode.EMAIL_ALREADY_EXISTS.getDefaultMessage());
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ErrorResponse> handlerException(ApiException ex) {
+        return buildResponse(ex);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -36,37 +31,27 @@ public class GlobalExceptionHandler {
                                 .add(err.getDefaultMessage())
                 );
 
-        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR, ErrorCode.VALIDATION_ERROR.getDefaultMessage(), fieldErr);
+        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR, fieldErr);
     }
 
-    @ExceptionHandler(IncorrectPasswordException.class)
-    public ResponseEntity<ErrorResponse> handlerIncorrectPasswordError(IncorrectPasswordException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.INCORRECT_PASSWORD, ErrorCode.INCORRECT_PASSWORD.getDefaultMessage());
-    }
-
-    @ExceptionHandler(NewPasswordMustBeDifferentException.class)
-    public ResponseEntity<ErrorResponse> handlerNewPasswordMustBeDifferentException(NewPasswordMustBeDifferentException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.NEW_PASSWORD_MUST_BE_DIFFERENT, ErrorCode.NEW_PASSWORD_MUST_BE_DIFFERENT.getDefaultMessage());
-    }
-
-    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, ErrorCode code, String message) {
+    private ResponseEntity<ErrorResponse> buildResponse(ApiException ex) {
         ErrorResponse err = new ErrorResponse(
                 LocalDateTime.now(),
-                status.value(),
-                code,
-                message
+                ex.getHttpStatus().value(),
+                ex.getErrorCode(),
+                ex.getErrorCode().getDefaultMessage()
         );
         return ResponseEntity
-                .status(status)
+                .status(ex.getHttpStatus())
                 .body(err);
     }
 
-    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, ErrorCode code, String message, Map<String, List<String>> errs) {
+    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, ErrorCode code, Map<String, List<String>> errs) {
         ErrorResponse err = new ErrorResponse(
                 LocalDateTime.now(),
                 status.value(),
                 code,
-                message,
+                code.getDefaultMessage(),
                 errs
         );
         return ResponseEntity
