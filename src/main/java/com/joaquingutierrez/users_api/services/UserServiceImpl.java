@@ -10,6 +10,7 @@ import com.joaquingutierrez.users_api.exceptions.EmailAlreadyExistException;
 import com.joaquingutierrez.users_api.exceptions.IncorrectPasswordException;
 import com.joaquingutierrez.users_api.exceptions.NewPasswordMustBeDifferentException;
 import com.joaquingutierrez.users_api.exceptions.UserNotFoundException;
+import com.joaquingutierrez.users_api.mappers.UserMapper;
 import com.joaquingutierrez.users_api.repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,10 +24,12 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -34,71 +37,40 @@ public class UserServiceImpl implements UserService {
         if(userRepository.existsByEmail(req.getEmail())){
             throw new EmailAlreadyExistException();
         }
-        User user = map(req);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return map(userRepository.save(user));
-    }
 
-    private UserResponse map(User user) {
-        UserResponse resp = new UserResponse();
-        resp.setId(user.getId());
-        resp.setEmail(user.getEmail());
-        resp.setName(user.getName());
-        resp.setLastName(user.getLastName());
-        resp.setRole(user.getRole());
-        resp.setCreatedAt(user.getCreatedAt());
-        return resp;
+        User user = userMapper.toEntity(req);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setRole(Role.ROLE_USER);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        return userMapper.toResponse(userRepository.save(user));
     }
 
     @Override
     public UserResponse update(Long id, UpdateUserRequest req) {
-        User existingUser = userRepository.findById(id)
-                .orElseThrow(UserNotFoundException::new);
+        User existingUser = getUser(id);
         if (userRepository.existsByEmailAndIdNot(req.getEmail(), id)) {
             throw new EmailAlreadyExistException();
         }
-        map(req, existingUser);
+        userMapper.updateEntity(req, existingUser);
 
-        return map(userRepository.save(existingUser));
-    }
-
-    private User map(CreateUserRequest req) {
-        User user = new User ();
-        map(req, user);
-        user.setPassword(req.getPassword());
-        user.setCreatedAt(LocalDateTime.now());
-        user.setRole(Role.ROLE_USER);
-        return user;
-    }
-
-    private void map(CreateUserRequest req, User user) {
-        user.setEmail(req.getEmail());
-        user.setName(req.getName());
-        user.setLastName(req.getLastName());
-    }
-
-    private void map(UpdateUserRequest req, User user) {
-        user.setEmail(req.getEmail());
-        user.setName(req.getName());
-        user.setLastName(req.getLastName());
+        return userMapper.toResponse(userRepository.save(existingUser));
     }
 
     @Override
     public void delete(Long id) {
-        userRepository.findById(id)
-                .orElseThrow(UserNotFoundException::new);
+        getUser(id);
         userRepository.deleteById(id);
     }
 
     @Override
     public UserResponse findById(Long id) {
-        return map(userRepository.findById(id)
-                .orElseThrow(UserNotFoundException::new));
+        return userMapper.toResponse(getUser(id));
     }
 
     @Override
     public UserResponse findByEmail(String email) {
-        return map(userRepository.findByEmail(email)
+        return userMapper.toResponse(userRepository.findByEmail(email)
                 .orElseThrow(UserNotFoundException::new));
     }
 
@@ -106,15 +78,14 @@ public class UserServiceImpl implements UserService {
     public List<UserResponse> findAll() {
         return userRepository.findAll()
                 .stream()
-                .map(this::map)
+                .map(userMapper::toResponse)
                 .toList();
     }
 
     @Transactional
     @Override
     public void changePassword(Long id, ChangePasswordRequest req) {
-        User user = userRepository.findById(id)
-                .orElseThrow(UserNotFoundException::new);
+        User user = getUser(id);
 
         if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
             throw new IncorrectPasswordException();
@@ -125,5 +96,10 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
+    }
+
+    private User getUser(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(UserNotFoundException::new);
     }
 }
